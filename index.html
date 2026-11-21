@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cantiere360</title>
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#2457C5">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#2457C5">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -219,6 +219,7 @@ body.mshell{--bg:#EEF1F5;--ink:#14213D;--mut:#5B6B82;--line:#E3E8EF;--acc:#2457C
 .isph{display:flex;gap:8px;flex-wrap:wrap}.isph img{width:86px;height:86px;object-fit:cover;border-radius:10px;cursor:pointer}
 .cdoc{padding:10px 4px;border-bottom:1px solid #EEF1F5}
 .mlink{border:0;background:#E8F0FF;color:#2457C5;font:inherit;font-weight:700;font-size:12px;padding:3px 8px;border-radius:8px;margin-left:6px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
+.mbadge{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#B3261E;color:#fff;font:800 11px/20px Manrope,system-ui,sans-serif;box-sizing:border-box}
 .msmall{font-size:13px;color:#5B6B82;margin:-6px 6px 10px}
 @media (prefers-reduced-motion:reduce){.mswitch,.mswitch::after{transition:none}}
 html,body{margin:0;height:100%}
@@ -611,6 +612,15 @@ async function boot(){
   startRealtime();showQ();flushQ();
 }
 window.C360_LOGOUT=async()=>{await sb.auth.signOut();location.reload()};
+/* ---------- notifiche sul dispositivo ---------- */
+let SWREG=null;
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){navigator.serviceWorker.register("/sw.js").then(r=>{SWREG=r}).catch(()=>{})}
+window.C360_NOTIFY=async(title,body,tag)=>{
+  if(!("Notification" in window)||Notification.permission!=="granted")return;
+  const o={body,tag,icon:"/icon-192.png",badge:"/icon-192.png",data:{url:"/#m-avvisi"}};
+  try{const r=SWREG||(navigator.serviceWorker&&await navigator.serviceWorker.getRegistration());if(r){await r.showNotification("Cantiere360 · "+title,o);return}}catch(_){}
+  try{const n=new Notification("Cantiere360 · "+title,o);n.onclick=()=>{window.focus();location.hash="#m-avvisi"}}catch(_){}
+};
 window.C360_EMAIL=()=>EMAIL;
 window.C360_ADMIN=()=>((CFG.admins||[]).includes((EMAIL||"").toLowerCase()));
 window.C360_READY=boot();
@@ -714,7 +724,10 @@ function watchPhotos(boardId){
 /* ================= stato UI ================= */
 const UI={view:"home",boardId:null,tab:"bacheca",filt:{q:"",label:"",member:"",due:""},calMonth:null,sort:{k:"pos",d:1},showArch:false};
 function go(hash){if(location.hash!=="#"+hash)location.hash=hash;else route()}
+const NAV=[];
+function goBack(){if(NAV.length>1)history.back();else go("home")}
 function route(){
+  {const hh=location.hash||"#home";if(NAV[NAV.length-2]===hh)NAV.pop();else if(NAV[NAV.length-1]!==hh)NAV.push(hh);if(NAV.length>60)NAV.splice(0,NAV.length-60)}
   if(MSTACK.length)closeModal(true,true);
   const h=location.hash.slice(1);
   if(h===""||h==="home"){UI.view="m";UI.mpage="home";render();return}
@@ -845,7 +858,7 @@ function homeHTML(){
   if(S.slow)h+='<div class="warnbar">Non riesco ancora a raggiungere i dati: quello che vedi potrebbe non essere aggiornato.</div>';
   if(S.err)h+='<div class="warnbar">I dati condivisi non sono raggiungibili in questo momento.</div>';
   if(LOCAL)h+='<div class="warnbar">Modalità locale: i dati restano solo su questo dispositivo.</div>';
-  h+='<div class="row"><h2 class="grow">Cantieri e commesse</h2><button class="ib" id="goPeople">👷 Personale e scadenze</button><button class="ib" id="goPlanner">🗓 Planner</button><button class="ib" id="goCompany">🏢 Azienda</button>'+(CANWRITE?'<button class="ib" id="goImport">⬇ Importa</button>':'')+''+(CANWRITE?'<button class="ib p" id="newBoard">+ Nuovo cantiere</button>':'')+'</div>';
+  h+='<div class="row"><button class="ib" id="homeBack">← Indietro</button><h2 class="grow">Cantieri e commesse</h2><button class="ib" id="goPeople">👷 Personale e scadenze</button><button class="ib" id="goPlanner">🗓 Planner</button><button class="ib" id="goCompany">🏢 Azienda</button>'+(CANWRITE?'<button class="ib" id="goImport">⬇ Importa</button>':'')+''+(CANWRITE?'<button class="ib p" id="newBoard">+ Nuovo cantiere</button>':'')+'</div>';
   const exp=expiringPDocs();if(exp.length)h+=`<div class="warnbar" style="cursor:pointer" id="expBar">⚠️ ${exp.length} attestati o documenti del personale scaduti o in scadenza entro 30 giorni — apri lo scadenzario</div>`;
   if(!act.length)h+='<div class="box empty">Nessun cantiere ancora. Crea il primo: ogni cantiere ha la sua bacheca di attività e il suo giornale dei lavori.</div>';
   const folders=[...new Set(act.map(b=>b.folder||""))].sort((a,b2)=>!a?-1:!b2?1:a.localeCompare(b2));
@@ -858,6 +871,7 @@ function homeHTML(){
 }
 function bindHome(){
   const nb=$("#newBoard");if(nb)nb.onclick=()=>newBoardDlg(false);
+  const hb=$("#homeBack");if(hb)hb.onclick=goBack;
   $("#goPeople").onclick=()=>go("personale");const gi=$("#goImport");if(gi)gi.onclick=importDlg;$("#goPlanner").onclick=()=>go("planner");$("#goCompany").onclick=()=>{if(!CANWRITE){toast("Sola lettura");return}companyDlg()};
   const eb=$("#expBar");if(eb)eb.onclick=()=>go("personale");
   document.querySelectorAll("[data-b]").forEach(x=>x.onclick=e=>{if(e.target.closest("[data-star]"))return;go("b-"+x.dataset.b)});
@@ -1906,7 +1920,7 @@ function docState(exp){if(!exp)return"";const dd=daysBetween(todayISO(),exp);ret
 function expiringPDocs(){const out=[];personList().forEach(p=>(p.docs||[]).forEach(d=>{const s=docState(d.expiry);if(s==="late"||s==="soon")out.push({p,d,s})}));return out.sort((a,b2)=>a.d.expiry.localeCompare(b2.d.expiry))}
 function peopleHTML(){
   const ps=personList();const ex=expiringPDocs();
-  return`<div class="row"><button class="ib" data-gohome>← Cantieri</button><h2 class="grow" style="margin:8px 0">👷 Personale e scadenzario</h2>${CANWRITE?'<button class="ib p" id="pNew">+ Persona</button>':""}<button class="ib" id="pBadge">🪪 Badge PDF</button><button class="ib" id="pCsv">CSV scadenze</button></div>
+  return`<div class="row"><button class="ib" data-gohome>← Indietro</button><h2 class="grow" style="margin:8px 0">👷 Personale e scadenzario</h2>${CANWRITE?'<button class="ib p" id="pNew">+ Persona</button>':""}<button class="ib" id="pBadge">🪪 Badge PDF</button><button class="ib" id="pCsv">CSV scadenze</button></div>
   ${ex.length?`<div class="warnbar"><b>${ex.length} documenti scaduti o in scadenza entro 30 giorni</b><br>${ex.slice(0,8).map(x=>`${esc(x.p.name)}: ${esc(x.d.type)} ${x.s==="late"?"<b>scaduto</b>":"scade"} il ${fmtD(x.d.expiry)}`).join("<br>")}</div>`:""}
   <div class="tw"><table class="t"><thead><tr><th>Nome</th><th>Qualifica</th><th>Impresa</th><th>Costo €/h</th><th>Documenti</th></tr></thead><tbody>
   ${ps.map(p=>{const docs=p.docs||[];const late=docs.filter(d=>docState(d.expiry)==="late").length,soon=docs.filter(d=>docState(d.expiry)==="soon").length;
@@ -1915,7 +1929,7 @@ function peopleHTML(){
   </tbody></table></div>`;
 }
 function bindPeople(){
-  document.querySelector("[data-gohome]").onclick=()=>go("home");
+  document.querySelector("[data-gohome]").onclick=goBack;
   const n=$("#pNew");if(n)n.onclick=()=>personDlg(null);
   document.querySelectorAll("[data-person]").forEach(x=>x.onclick=()=>personDlg(x.dataset.person));
   $("#pBadge").onclick=()=>badgeDlg();
@@ -2090,7 +2104,7 @@ function plannerHTML(){
   const ws=weekStart(UI.planWeek||todayISO());const days=[...Array(7)].map((_,i)=>{const d=new Date(ws);d.setDate(ws.getDate()+i);return isoOf(d)});
   const items=planItems();const myName=UI.myName||"";
   const todo=Object.entries(S.cards).filter(([,c])=>!c.done&&!c.archived&&!c.template&&S.boards[c.boardId]&&!S.boards[c.boardId].archived&&(c.due&&c.due.slice(0,10)<=days[6]||(myName&&(c.members||[]).includes(myName)))).map(([id,c])=>Object.assign({id},c)).sort((a,b2)=>(a.due||"9").localeCompare(b2.due||"9")).slice(0,40);
-  return`<div class="row"><button class="ib" data-gohome>← Cantieri</button><h2 class="grow" style="margin:8px 0">🗓 Il mio Planner</h2><button class="ib" id="plP">‹</button><button class="ib" id="plT">Questa settimana</button><button class="ib" id="plN">›</button></div>
+  return`<div class="row"><button class="ib" data-gohome>← Indietro</button><h2 class="grow" style="margin:8px 0">🗓 Il mio Planner</h2><button class="ib" id="plP">‹</button><button class="ib" id="plT">Questa settimana</button><button class="ib" id="plN">›</button></div>
   ${!LOCAL&&!ME.id?'<div class="warnbar">Accedi per usare il Planner personale.</div>':""}
   <div class="small muted" style="margin-bottom:8px">Blocca fasce orarie per le attività dei cantieri: il Planner lo vedi solo tu.</div>
   <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">${days.map(d=>{const its=items.filter(x=>x.date===d).sort((a,b2)=>(a.from||"").localeCompare(b2.from||""));const dt=new Date(d+"T00:00");
@@ -2100,7 +2114,7 @@ function plannerHTML(){
   <div class="box" style="padding:0">${todo.map(c=>`<div class="rp"><span class="chip ${dueState(c)}">${c.due?fmtD(c.due):"—"}</span><span class="grow" data-plcard="${c.id}" style="cursor:pointer">${esc(c.title)} <span class="small muted">${esc(S.boards[c.boardId].name)}</span></span><button class="ib s" data-plsched="${c.id}">Pianifica</button></div>`).join("")||'<div class="empty">Nessuna attività in scadenza</div>'}</div>`;
 }
 function bindPlanner(){
-  document.querySelector("[data-gohome]").onclick=()=>go("home");
+  document.querySelector("[data-gohome]").onclick=goBack;
   const sh=n=>{const ws=weekStart(UI.planWeek||todayISO());ws.setDate(ws.getDate()+7*n);UI.planWeek=isoOf(ws);render()};
   $("#plP").onclick=()=>sh(-1);$("#plN").onclick=()=>sh(1);$("#plT").onclick=()=>{UI.planWeek=null;render()};
   $("#plMe").onchange=e=>{UI.myName=e.target.value.trim();try{localStorage.setItem("c360_myname",UI.myName)}catch(_){}render()};
@@ -2485,10 +2499,11 @@ const SI={ddt:'<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 
  swap:'<path d="M7 7h11l-3-3M17 17H6l3 3"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.3 15H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9.7 4.3V4a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1z"/>',
  pin:'<path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
  imprese:'<path d="M4 21V7l6-3v17M10 21V9l10 3v9M3 21h18M7 10v.01M7 13v.01M7 16v.01M14 14h2M14 17h2"/>',
+ bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
  chev:'<path d="M9 5l7 7-7 7"/>',back:'<path d="M15 5l-7 7 7 7"/>',dots:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
  home:'<path d="M3 11l9-7 9 7v9H14v-6h-4v6H3z"/>',archivio:'<path d="M4 4h16v4H4zM5 8v12h14V8M10 12h4"/>',galleria:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'};
 function sic(n,size,color){return`<svg aria-hidden="true" width="${size||24}" height="${size||24}" viewBox="0 0 24 24" fill="none" stroke="${color||"currentColor"}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SI[n]||""}</svg>`}
-const TINTS={ddt:["#FFF1E6","#C2560F"],giornale:["#E8F0FF","#2457C5"],sopralluogo:["#EAF7EF","#1D7A46"],cse:["#FFF6D6","#946200"],presenze:["#F1ECFF","#5B3CC4"],sal:["#E6F7F8","#0E7680"],scad:["#FFEBEE","#B3261E"],bacheca:["#EEF1F5","#3A4A5C"],planner:["#E8F0FF","#2457C5"],costi:["#E6F7F8","#0E7680"],persone:["#F1ECFF","#5B3CC4"],mezzi:["#EEF1F5","#3A4A5C"],foto:["#FFF1E6","#C2560F"],pin:["#FFEBEE","#B3261E"],imprese:["#EEF1F5","#3A4A5C"],meteo:["#E8F0FF","#2457C5"],sun:["#E8F0FF","#2457C5"],pdf:["#FFEBEE","#B3261E"],firma:["#E8F0FF","#2457C5"],nota:["#EAF7EF","#1D7A46"]};
+const TINTS={ddt:["#FFF1E6","#C2560F"],giornale:["#E8F0FF","#2457C5"],sopralluogo:["#EAF7EF","#1D7A46"],cse:["#FFF6D6","#946200"],presenze:["#F1ECFF","#5B3CC4"],sal:["#E6F7F8","#0E7680"],scad:["#FFEBEE","#B3261E"],bacheca:["#EEF1F5","#3A4A5C"],planner:["#E8F0FF","#2457C5"],costi:["#E6F7F8","#0E7680"],persone:["#F1ECFF","#5B3CC4"],mezzi:["#EEF1F5","#3A4A5C"],foto:["#FFF1E6","#C2560F"],pin:["#FFEBEE","#B3261E"],bell:["#FFF6D6","#946200"],imprese:["#EEF1F5","#3A4A5C"],meteo:["#E8F0FF","#2457C5"],sun:["#E8F0FF","#2457C5"],pdf:["#FFEBEE","#B3261E"],firma:["#E8F0FF","#2457C5"],nota:["#EAF7EF","#1D7A46"]};
 function chip(icon,size){const t=TINTS[icon]||TINTS.bacheca;const sz=size||48;return`<span class="mchip" style="width:${sz}px;height:${sz}px;background:${t[0]};color:${t[1]}">${sic(icon,Math.round(sz*0.54))}</span>`}
 const SEC_ICON={lavorazioni:"giornale",osservazioni:"nota",presenti:"presenze",subappaltatori:"persone",mezzi:"mezzi",foto:"foto",pdf:"pdf",firme:"firma",accertato:"sopralluogo",committenza:"presenze",imprese:"persone",rilevazioni:"sopralluogo",prescrizioni:"cse",manodopera:"presenze",materiali:"ddt",annotazioni:"nota"};
 const MODULES=[["ddt","Scansione DDT","ddt","Fotografa le bolle e leggi le righe con l'IA"],["giornale","Giornale dei lavori","giornale","Lavorazioni, presenti, mezzi e firme del giorno"],["sopralluogo","Verbale sopralluogo","sopralluogo","Presenti, accertamenti, foto e firme"],["cse","Verbale CSE","cse","Verbali del coordinatore della sicurezza"],["presenze","Presenze","presenze","Timbrature con QR e ore della squadra"],["sal","Rapportino / SAL","sal","Manodopera, mezzi, lavorazioni e materiali in euro"],["scadenzario","Scadenzario","scad","Documenti e attestati del personale"],["bacheca","Bacheca attività","bacheca","Liste e schede delle attività del cantiere"],["planner","Planner","planner","Le tue giornate a fasce orarie"],["costi","Costi e SAL","costi","Controllo costi, computo metrico e SAL"],["personale","Personale","persone","Anagrafica, costi orari e badge"],["planimetria","Segnalazioni su planimetria","pin","Problemi e lavori da finire segnati sulla pianta, con foto e stato"],["imprese","Imprese e documenti","imprese","DURC, POS e documenti dei subappaltatori con scadenze"],["meteo","Meteo automatico","sun","Compila da solo il meteo del giornale dall'indirizzo del cantiere",true]];
@@ -2531,7 +2546,7 @@ function secItems(r,k){return(r.sec&&r.sec[k])||[]}
 function secCount(r,s,rid){if(s.kind==="photo")return Object.values(S.photos).filter(p=>p.reportId===rid&&p.sec===s.k).length;if(s.kind==="pdf")return(r.attach||[]).length;if(s.kind==="sign")return(r.signs||[]).length;return secItems(r,s.k).length}
 
 /* ---------- impaginazione ---------- */
-function mTop(back,title,act){return`<div class="mtop">${back?`<button class="mback" data-mback="${esc(back)}" aria-label="Indietro">${sic("back",22)}</button>`:""}<span class="mtt">${title||""}</span>${act||""}</div>`}
+function mTop(back,title,act){return`<div class="mtop"><button class="mback" data-mback="${esc(back||"__back")}" aria-label="Indietro">${sic("back",22)}</button><span class="mtt">${title||""}</span>${act||""}</div>`}
 const mPill=(id,label)=>`<button class="mpill" id="${id}">${label}</button>`;
 function mTabbar(){const t=UI.mpage==="archivio"?"archivio":UI.mpage==="galleria"?"galleria":"home";
   return`<nav class="mtab">${[["home","Home"],["archivio","Archivio"],["galleria","Galleria"]].map(([k,l])=>`<button data-mtab="${k}" class="${t===k?"on":""}">${sic(k,20)}<span>${l}</span></button>`).join("")}</nav>`}
@@ -2541,6 +2556,7 @@ function mHTML(){
   const p=UI.mpage||"home";let h="";
   if(S.slow)h+='<div class="warnbar" style="margin-top:10px">Non riesco ancora a raggiungere i dati: quello che vedi potrebbe non essere aggiornato.</div>';
   if(p==="home")h+=mHome(bid);
+  else if(p==="avvisi")h+=mAvvisi();
   else if(!bid)h+=mTop("home","")+'<div class="mcard mempty">Crea prima un cantiere dalla Home.</div>';
   else if(["giornale","sopralluogo","cse","sal","ddt","presenze","scadenzario","planimetria","imprese"].includes(p)&&!modOn(p))h+=mTop("home","")+'<div class="mcard mempty">Questa funzione è disattivata. Puoi riattivarla da Impostazioni.</div>';
   else if(MTYPES[p])h+=mList(bid,p);
@@ -2548,6 +2564,7 @@ function mHTML(){
   else if(p==="section")h+=mSection();
   else if(p==="ddt")h+=mDdt(bid);
   else if(p==="planimetria")h+=mPlan(bid);
+  else if(p==="avvisi")h+=mAvvisi();
   else if(p==="imprese")h+=mImprese();
   else if(p==="presenze")h+=mTop("home","")+lateCompaniesOnSite(bid,UI.presDate||todayISO()).map(x=>`<div class="warnbar" style="margin-bottom:10px;background:#FFEBEE;color:#B3261E;border-color:#F3B7B1"><b>${esc(x.c.name)}</b> ha documenti scaduti (${esc((x.c.docs||[]).filter(d=>docState(d.expiry)==="late").map(d=>d.type).join(", "))}) e oggi in cantiere ci sono: ${esc(x.people.join(", "))}.</div>`).join("")+`<div class="mlisthead">${chip("presenze",44)}<h1 class="mh1" style="margin:0">Presenze</h1></div>`+presHTML(S.boards[bid]);
   else if(p==="scadenzario")h+=mScad();
@@ -2560,7 +2577,7 @@ function mHome(bid){
   const open=b&&modOn("presenze")?namesOnDate(bid,todayISO()).filter(n=>hoursOn(bid,n,todayISO()).open).length:0;const sc=(modOn("scadenzario")?expiringPDocs().length:0)+(modOn("imprese")?expiringCDocs().length:0);
   const mods=MODULES.filter(([k,,,,nt])=>modOn(k)&&!nt);
   return`<div class="mhomehead"><div><div class="mhello">${nm?"Ciao "+esc(nm):"Ciao"}</div><h1 class="mh1" style="margin:0">Home</h1></div><span class="grow"></span>
-   <button class="mround" id="mSet" aria-label="Impostazioni">${sic("gear",22)}</button><button class="mround" id="mCant" aria-label="Cambia cantiere">${sic("swap",22)}</button></div>
+   <button class="mround" id="mBell" aria-label="Avvisi" style="position:relative">${sic("bell",22)}${(()=>{const n=dlCount();return n?`<span class="mbadge">${n>99?"99+":n}</span>`:""})()}</button><button class="mround" id="mSet" aria-label="Impostazioni">${sic("gear",22)}</button><button class="mround" id="mCant" aria-label="Cambia cantiere">${sic("swap",22)}</button></div>
   ${b?`<button class="mbanner" id="mCant2"><span class="grow" style="min-width:0"><span class="mbk">Cantiere attivo</span><span class="mbn">${esc(b.name)}</span><span class="mbs">${[(b.info||{}).cliente?esc(b.info.cliente):"",open?open+" in cantiere ora":"",sc?sc+" scadenze vicine":""].filter(Boolean).join(" · ")||"Tocca per cambiare cantiere"}</span></span>${sic("chev",22)}</button>
    <div class="mtiles">${mods.map(([k,l,ic])=>`<button class="mtile" data-mgo="${k}">${chip(ic,48)}<b>${l}</b></button>`).join("")}</div>
    ${mods.length?"":`<div class="mcard mempty">Tutte le funzioni sono disattivate. Riattivale da Impostazioni.</div>`}`:
@@ -2719,14 +2736,14 @@ function cantSheet(){
     const nb=root.querySelector("#csNew");if(nb)nb.onclick=()=>{closeModal();newBoardDlg(true)};
     const on=(id,fn)=>{const e=root.querySelector("#"+id);if(e)e.onclick=()=>{closeModal();fn()}};
     on("csInfo",()=>{if(!cur){toast("Nessun cantiere");return}UI.boardId=cur;if(!CANWRITE){toast("Sola lettura");return}infoDlg()});
-    on("csBoard",()=>{if(cur)go("b-"+cur)});on("csAll",()=>go("cantieri"));on("csSearch",searchDlg);on("csInbox",inboxDlg);on("csBell",bellDlg);
+    on("csBoard",()=>{if(cur)go("b-"+cur)});on("csAll",()=>go("cantieri"));on("csSearch",searchDlg);on("csInbox",inboxDlg);on("csBell",()=>go("m-avvisi"));
     on("csImp",()=>{if(!CANWRITE){toast("Sola lettura");return}importDlg()});on("csCo",()=>{if(!CANWRITE){toast("Sola lettura");return}companyDlg()});on("csSet",settingsSheet);
   });
 }
 function bindM(){
   const p=UI.mpage||"home";
   document.querySelectorAll("[data-mtab]").forEach(x=>x.onclick=()=>go(x.dataset.mtab==="home"?"home":"m-"+x.dataset.mtab));
-  document.querySelectorAll("[data-mback]").forEach(x=>x.onclick=()=>{const t=x.dataset.mback;go(t==="home"?"home":MTYPES[t]?"m-"+t:t)});
+  document.querySelectorAll("[data-mback]").forEach(x=>x.onclick=()=>{const t=x.dataset.mback;if(t==="__back"){goBack();return}go(t==="home"?"home":MTYPES[t]?"m-"+t:t)});
   document.querySelectorAll("[data-mgo]").forEach(x=>x.onclick=()=>{const k=x.dataset.mgo;const bid=curBoard();
     if(k==="bacheca")go("b-"+bid);else if(k==="costi")go("b-"+bid+"-costi");else if(k==="planner")go("tb-planner");else if(k==="personale")go("personale");else go("m-"+k)});
   const c1=$("#mCant"),c2=$("#mCant2");[c1,c2].forEach(c=>{if(c)c.onclick=()=>{if(!Object.keys(S.boards).length&&CANWRITE)newBoardDlg(true);else cantSheet()}});
@@ -2766,6 +2783,8 @@ function bindM(){
       rt.querySelector("#anUp").onchange=async e=>{const fs=[...e.target.files];closeModal();const imgs=fs.filter(f=>/^image\//.test(f.type));for(const f of fs.filter(f=>!/^image\//.test(f.type)))await uploadDocFile(f);if(imgs.length){const cs=[];for(const f of imgs){try{const im=await fileToImage(f);cs.push(imgToCanvas(im,2000));URL.revokeObjectURL(im.src)}catch(_){}}if(cs.length)newDocDlg(cs,imgs[0])}}})}
   if(p==="galleria")bindThumbs(document.querySelector("#main"),()=>render());
   if(p==="planimetria")bindPlan();
+  if(p==="avvisi")bindAvvisi();
+  const bl=$("#mBell");if(bl)bl.onclick=()=>go("m-avvisi");
   if(p==="imprese"||p==="scadenzario")document.querySelectorAll("[data-imp]").forEach(x=>x.onclick=()=>companySheet(x.dataset.imp));
   if(p==="imprese"){const n=$("#imNew");if(n)n.onclick=()=>companySheet(null)}
   if(p==="presenze")bindPres();
@@ -2879,12 +2898,12 @@ function boardGrad(b){const c=col(b&&b.color)||"#6c5ccf";return`linear-gradient(
 function listBg(l){const c=col(l.color);return c?`color-mix(in srgb, ${c} 32%, #fff)`:"#f1f2f4"}
 function pushRecent(id){try{let r=JSON.parse(localStorage.getItem("c360_recent")||"[]");r=[id].concat(r.filter(x=>x!==id)).slice(0,8);localStorage.setItem("c360_recent",JSON.stringify(r))}catch(_){}}
 function recents(){try{return JSON.parse(localStorage.getItem("c360_recent")||"[]").filter(id=>S.boards[id]&&!S.boards[id].archived)}catch(_){return[]}}
-function tTop(dark){return`<div class="ttop ${dark?"dark":""}"><button class="tic" id="tLogo" aria-label="Home">${TI.logo}</button><span class="grow"></span><button class="tic" id="tSearch" aria-label="Cerca">${TI.search}</button><button class="tcrea" id="tCrea">✦ Crea</button><span class="grow"></span><button class="tic" id="tMore" aria-label="Altro">${TI.more}</button></div>`}
+function tTop(dark){return`<div class="ttop ${dark?"dark":""}"><button class="tic" id="tBack" aria-label="Indietro"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><button class="tic" id="tLogo" aria-label="Home">${TI.logo}</button><span class="grow"></span><button class="tic" id="tSearch" aria-label="Cerca">${TI.search}</button><button class="tcrea" id="tCrea">✦ Crea</button><span class="grow"></span><button class="tic" id="tMore" aria-label="Altro">${TI.more}</button></div>`}
 function tBottom(active){return`<nav class="tbot">${[["inbox","Inbox",TI.inbox],["planner","Planner",TI.cal]].map(([k,l,ic])=>`<button data-tnav="${k}" class="${active===k?"on":""}" aria-label="${l}">${ic}</button>`).join("")}<button data-tnav="board" class="wide ${active==="board"?"on":""}" aria-label="Bacheca">${TI.cols}</button><span class="tsep"></span><button data-tnav="boards" class="${active==="boards"?"on":""}" aria-label="Cambia bacheca">${TI.swap}</button></nav>`}
 function tHead(b){const v=VIEWS.find(x=>x[0]===UI.tab)||VIEWS[0];
   return`<div class="thead"><b class="tname">${esc(b.name)}</b><button class="tview" id="tViews" aria-label="Viste">${UI.tab==="bacheca"?TI.board:`<span style="font-size:18px">${v[2]}</span>`} <span style="font-size:15px">▾</span></button><span class="grow"></span>${UI.tab==="bacheca"?`<button class="tic" id="tFilt" aria-label="Filtra">${TI.filter}</button>`:""}<button class="tic" id="tBMore" aria-label="Menu bacheca">${TI.more}</button></div>`}
 function tBindCommon(){
-  const lg=$("#tLogo");if(lg)lg.onclick=()=>go("home");
+  const lg=$("#tLogo");if(lg)lg.onclick=()=>go("home");const tb=$("#tBack");if(tb)tb.onclick=goBack;
   const se=$("#tSearch");if(se)se.onclick=()=>searchDlg();
   const cr=$("#tCrea");if(cr)cr.onclick=creaMenu;
   const mo=$("#tMore");if(mo)mo.onclick=tMoreMenu;
@@ -3164,6 +3183,55 @@ async function autoMeteo(rid,force){
   catch(e){if(force)toast("Meteo: "+(e&&e.message||"non disponibile"))}
 }
 
+/* ================= avvisi e scadenze ================= */
+function allDeadlines(){
+  const out=[];const t=todayISO();
+  const st=d=>{const dd=daysBetween(t,d);return dd<0?"late":dd<=7?"week":dd<=30?"soon":""};
+  dueList().forEach(c=>{const d=c.due.slice(0,10);out.push({id:"c:"+c.id,kind:"Attività",label:c.title,sub:(S.boards[c.boardId]||{}).name||"",date:d,st:st(d),open:()=>{go("b-"+c.boardId);setTimeout(()=>openCard(c.id),60)}})});
+  if(modOn("scadenzario"))personList().forEach(p=>(p.docs||[]).forEach((d,i)=>{if(!d.expiry)return;const s=st(d.expiry);if(s)out.push({id:"p:"+p.id+":"+i,kind:"Personale",label:d.type,sub:p.name,date:d.expiry,st:s,open:()=>scadSheet(p.id,i)})}));
+  if(modOn("imprese"))companyList().forEach(c=>(c.docs||[]).forEach((d,i)=>{if(!d.expiry)return;const s=st(d.expiry);if(s)out.push({id:"i:"+c.id+":"+i,kind:"Imprese",label:d.type,sub:c.name,date:d.expiry,st:s,open:()=>companySheet(c.id)})}));
+  if(modOn("planimetria"))Object.entries(S.issues).forEach(([id,x])=>{if(!x.due||x.status==="chiusa")return;const s=st(x.due);if(s)out.push({id:"s:"+id,kind:"Segnalazioni",label:"N. "+x.n+" – "+(x.title||""),sub:(S.boards[x.boardId]||{}).name||"",date:x.due,st:s,open:()=>{setCur(x.boardId);go("m-planimetria");setTimeout(()=>issueSheet(id),80)}})});
+  return out.sort((a,b2)=>a.date.localeCompare(b2.date));
+}
+const DL_LBL={late:"Scaduto",week:"Entro 7 giorni",soon:"Entro 30 giorni"};
+function mAvvisi(){
+  const l=allDeadlines();UI._dl=l;
+  const perm=("Notification" in window)?Notification.permission:"unsupported";
+  const grp=[["late","Scadute"],["week","Nei prossimi 7 giorni"],["soon","Nei prossimi 30 giorni"]];
+  return mTop("home","")+`<div class="mlisthead">${chip("bell",44)}<h1 class="mh1" style="margin:0">Avvisi</h1></div>
+  ${perm==="default"?`<div class="mcard" style="padding:14px 16px;margin-bottom:12px"><b>Notifiche sul telefono</b><div class="msd" style="margin:4px 0 10px">Ricevi un avviso quando qualcosa scade.</div><button class="mpill" id="avPerm">Attiva le notifiche</button></div>`:
+    perm==="denied"?`<div class="msmall" style="margin:0 6px 12px">Le notifiche sono bloccate: riattivale dalle impostazioni del browser per questo sito.</div>`:""}
+  ${l.length?grp.map(([k,t])=>{const it=l.filter(x=>x.st===k);return it.length?`<div class="mlabel">${t}</div><div class="mcard msecs">${it.map((x,i)=>`<div class="mrow" data-dl="${l.indexOf(x)}"><span class="grow" style="min-width:0"><span class="mst">${esc(x.label)}</span><span class="msd">${esc(x.kind)}${x.sub?" · "+esc(x.sub):""}</span></span><span class="chip ${k==="late"?"late":"soon"}">${fmtD(x.date)}</span>${sic("chev",18,"#A3AFBF")}</div>`).join("")}</div>`:""}).join("")
+   :'<div class="mempty2" style="margin-top:20vh">Nessuna scadenza nei prossimi 30 giorni</div>'}`;
+}
+function bindAvvisi(){
+  document.querySelectorAll("[data-dl]").forEach(x=>x.onclick=()=>{const it=(UI._dl||[])[+x.dataset.dl];if(it)it.open()});
+  const p=$("#avPerm");if(p)p.onclick=async()=>{try{const r=await Notification.requestPermission();if(r==="granted"){toast("Notifiche attivate");checkDeadlines(true)}else toast("Notifiche non consentite")}catch(_){toast("Questo browser non supporta le notifiche")}render()};
+}
+function dlCount(){return allDeadlines().filter(x=>x.st==="late"||x.st==="week").length}
+let DL_T=null;
+function checkDeadlines(force){
+  if(!S.ready)return;const l=allDeadlines().filter(x=>x.st==="late"||x.st==="week");if(!l.length)return;
+  const day=todayISO();let seen={};try{seen=JSON.parse(localStorage.getItem("c360_avvisi")||"{}")}catch(_){}
+  if(seen.day!==day)seen={day,ids:[],popup:false};
+  const fresh=l.filter(x=>!seen.ids.includes(x.id));
+  if(fresh.length&&window.C360_NOTIFY&&("Notification" in window)&&Notification.permission==="granted"){
+    const late=fresh.filter(x=>x.st==="late").length;
+    C360_NOTIFY(fresh.length===1?fresh[0].label+" – "+DL_LBL[fresh[0].st]:`${fresh.length} scadenze${late?" ("+late+" già scadute)":""}`,fresh.slice(0,4).map(x=>`${fmtD(x.date)} · ${x.label}${x.sub?" ("+x.sub+")":""}`).join("\n"),"scadenze-"+day);
+  }
+  if((!seen.popup||force)&&!MSTACK.length&&UI.view==="m"&&(UI.mpage||"home")==="home"){seen.popup=true;deadlinePopup(l)}
+  seen.ids=[...new Set(seen.ids.concat(fresh.map(x=>x.id)))];try{localStorage.setItem("c360_avvisi",JSON.stringify(seen))}catch(_){}
+}
+function deadlinePopup(l){
+  const late=l.filter(x=>x.st==="late").length;
+  modal(`<div class="sheetbar"><span></span><b>Scadenze</b><button class="mpill light" data-close>Chiudi</button></div>
+   <div class="msd" style="margin:0 6px 10px">${late?`<b style="color:#B3261E">${late} già scadute</b> · `:""}${l.length-late} nei prossimi 7 giorni</div>
+   <div class="mcard msecs">${l.slice(0,6).map((x,i)=>`<div class="mrow" data-pdl="${i}"><span class="grow" style="min-width:0"><span class="mst">${esc(x.label)}</span><span class="msd">${esc(x.kind)}${x.sub?" · "+esc(x.sub):""}</span></span><span class="chip ${x.st==="late"?"late":"soon"}">${fmtD(x.date)}</span></div>`).join("")}</div>
+   <button class="mbig" id="pdlAll" style="background:#2457C5">Vedi tutti gli avvisi</button>`,"sheet",root=>{
+    root.querySelectorAll("[data-pdl]").forEach(x=>x.onclick=()=>{closeModal();l[+x.dataset.pdl].open()});
+    root.querySelector("#pdlAll").onclick=()=>{closeModal();go("m-avvisi")}});
+}
+
 /* ---------- binding comuni ---------- */
 function bindBoardCommon(){
   if(UI.tab==="bacheca")bindBoard();
@@ -3210,7 +3278,7 @@ function inputDlg(title,val,ok,stack){modal(`<h3>${esc(title)}</h3><input class=
 /* ---------- avvio ---------- */
 $("#hBrand").onclick=()=>go("home");
 $("#hInbox").onclick=inboxDlg;$("#hBell").onclick=bellDlg;$("#hSearch").onclick=searchDlg;
-(window.C360_READY||Promise.reject(new Error("lib"))).then(()=>init()).then(()=>{route();updateNet()}).catch(e=>{document.body.innerHTML='<div style="font:600 17px Manrope,system-ui,sans-serif;color:#14213D;padding:40px 24px;text-align:center">Cantiere360 non riesce a collegarsi.<br><span style="font-weight:500;color:#5B6B82">Controlla la connessione e ricarica la pagina.</span><br><br><button onclick="location.reload()" style="font:inherit;font-weight:800;border:0;border-radius:14px;background:#2457C5;color:#fff;padding:12px 18px">Riprova</button></div>'});
+(window.C360_READY||Promise.reject(new Error("lib"))).then(()=>init()).then(()=>{route();updateNet();setTimeout(()=>checkDeadlines(),4000);setInterval(()=>checkDeadlines(),30*60e3)}).catch(e=>{document.body.innerHTML='<div style="font:600 17px Manrope,system-ui,sans-serif;color:#14213D;padding:40px 24px;text-align:center">Cantiere360 non riesce a collegarsi.<br><span style="font-weight:500;color:#5B6B82">Controlla la connessione e ricarica la pagina.</span><br><br><button onclick="location.reload()" style="font:inherit;font-weight:800;border:0;border-radius:14px;background:#2457C5;color:#fff;padding:12px 18px">Riprova</button></div>'});
 try{UI.myName=localStorage.getItem("c360_myname")||""}catch(_){}
 </script>
 </body>
