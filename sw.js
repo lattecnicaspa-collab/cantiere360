@@ -11,5 +11,6 @@ self.addEventListener("notificationclick",e=>{
 });
 self.addEventListener("push",e=>{
   let d={};try{d=e.data?e.data.json():{}}catch(_){d={body:e.data&&e.data.text()}}
-  e.waitUntil(self.registration.showNotification(d.title||"Cantiere360",{body:d.body||"",tag:d.tag||"c360",icon:"/icon-192.png",badge:"/icon-192.png",data:{url:d.url||"/#m-avvisi"}}));
+  const quiet=d.tag==="c360-versione";
+  e.waitUntil(self.registration.showNotification(d.title||"Cantiere360",Object.assign({body:d.body||"",tag:d.tag||"c360",icon:"/icon-192.png",badge:"/icon-192.png",data:{url:d.url||"/#m-avvisi"}},quiet?{silent:true}:{renotify:true,vibrate:[200,100,200]})));
 });
