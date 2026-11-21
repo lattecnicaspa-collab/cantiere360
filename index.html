@@ -217,6 +217,9 @@ body.mshell{--bg:#EEF1F5;--ink:#14213D;--mut:#5B6B82;--line:#E3E8EF;--acc:#2457C
 .mchipb{border:0;background:#fff;color:#3A4A5C;font:inherit;font-weight:700;font-size:14px;padding:8px 12px;border-radius:12px;white-space:nowrap;box-shadow:0 1px 0 #E3E8EF;cursor:pointer}
 .mchipb.on{background:#2457C5;color:#fff}.mchipb b{opacity:.75;margin-left:2px}
 .isph{display:flex;gap:8px;flex-wrap:wrap}.isph img{width:86px;height:86px;object-fit:cover;border-radius:10px;cursor:pointer}
+.isck{width:22px;height:22px;flex:0 0 auto;accent-color:#2457C5}
+.pin.pinsel{box-shadow:0 0 0 4px #2457C5,0 2px 6px rgba(0,0,0,.35)}
+.mbig[disabled]{opacity:.5}
 .cdoc{padding:10px 4px;border-bottom:1px solid #EEF1F5}
 .mlink{border:0;background:#E8F0FF;color:#2457C5;font:inherit;font-weight:700;font-size:12px;padding:3px 8px;border-radius:8px;margin-left:6px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
 .mbadge{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#B3261E;color:#fff;font:800 11px/20px Manrope,system-ui,sans-serif;box-sizing:border-box}
@@ -2506,7 +2509,7 @@ function sic(n,size,color){return`<svg aria-hidden="true" width="${size||24}" he
 const TINTS={ddt:["#FFF1E6","#C2560F"],giornale:["#E8F0FF","#2457C5"],sopralluogo:["#EAF7EF","#1D7A46"],cse:["#FFF6D6","#946200"],presenze:["#F1ECFF","#5B3CC4"],sal:["#E6F7F8","#0E7680"],scad:["#FFEBEE","#B3261E"],bacheca:["#EEF1F5","#3A4A5C"],planner:["#E8F0FF","#2457C5"],costi:["#E6F7F8","#0E7680"],persone:["#F1ECFF","#5B3CC4"],mezzi:["#EEF1F5","#3A4A5C"],foto:["#FFF1E6","#C2560F"],pin:["#FFEBEE","#B3261E"],bell:["#FFF6D6","#946200"],imprese:["#EEF1F5","#3A4A5C"],meteo:["#E8F0FF","#2457C5"],sun:["#E8F0FF","#2457C5"],pdf:["#FFEBEE","#B3261E"],firma:["#E8F0FF","#2457C5"],nota:["#EAF7EF","#1D7A46"]};
 function chip(icon,size){const t=TINTS[icon]||TINTS.bacheca;const sz=size||48;return`<span class="mchip" style="width:${sz}px;height:${sz}px;background:${t[0]};color:${t[1]}">${sic(icon,Math.round(sz*0.54))}</span>`}
 const SEC_ICON={lavorazioni:"giornale",osservazioni:"nota",presenti:"presenze",subappaltatori:"persone",mezzi:"mezzi",foto:"foto",pdf:"pdf",firme:"firma",accertato:"sopralluogo",committenza:"presenze",imprese:"persone",rilevazioni:"sopralluogo",prescrizioni:"cse",manodopera:"presenze",materiali:"ddt",annotazioni:"nota"};
-const MODULES=[["ddt","Scansione DDT","ddt","Fotografa le bolle e leggi le righe con l'IA"],["giornale","Giornale dei lavori","giornale","Lavorazioni, presenti, mezzi e firme del giorno"],["sopralluogo","Verbale sopralluogo","sopralluogo","Presenti, accertamenti, foto e firme"],["cse","Verbale CSE","cse","Verbali del coordinatore della sicurezza"],["presenze","Presenze","presenze","Timbrature con QR e ore della squadra"],["sal","Rapportino / SAL","sal","Manodopera, mezzi, lavorazioni e materiali in euro"],["scadenzario","Scadenzario","scad","Documenti e attestati del personale"],["bacheca","Bacheca attività","bacheca","Liste e schede delle attività del cantiere"],["planner","Planner","planner","Le tue giornate a fasce orarie"],["costi","Costi e SAL","costi","Controllo costi, computo metrico e SAL"],["personale","Personale","persone","Anagrafica, costi orari e badge"],["planimetria","Segnalazioni su planimetria","pin","Problemi e lavori da finire segnati sulla pianta, con foto e stato"],["imprese","Imprese e documenti","imprese","DURC, POS e documenti dei subappaltatori con scadenze"],["meteo","Meteo automatico","sun","Compila da solo il meteo del giornale dall'indirizzo del cantiere",true]];
+const MODULES=[["ddt","Scansione DDT","ddt","Fotografa le bolle e leggi le righe con l'IA"],["giornale","Giornale dei lavori","giornale","Lavorazioni, presenti, mezzi e firme del giorno"],["sopralluogo","Verbale sopralluogo","sopralluogo","Presenti, accertamenti, foto e firme"],["cse","Verbale CSE","cse","Verbali del coordinatore della sicurezza"],["presenze","Presenze","presenze","Timbrature con QR e ore della squadra"],["sal","Rapportino / SAL","sal","Manodopera, mezzi, lavorazioni e materiali in euro"],["scadenzario","Scadenzario","scad","Documenti e attestati del personale"],["bacheca","Bacheca attività","bacheca","Liste e schede delle attività del cantiere"],["planner","Planner","planner","Le tue giornate a fasce orarie"],["costi","Costi e SAL","costi","Controllo costi, computo metrico e SAL"],["personale","Personale","persone","Anagrafica, costi orari e badge"],["planimetria","Segnalazioni su planimetria","pin","Problemi e lavori da finire segnati sulla pianta, con foto e stato"],["imprese","Anagrafica aziende","imprese","Subappaltatori, fornitori e clienti con DURC, POS e scadenze; compaiono a tendina quando scrivi un'azienda"],["meteo","Meteo automatico","sun","Compila da solo il meteo del giornale dall'indirizzo del cantiere",true]];
 function modOn(k){const m=(S.settings.modules)||{};return m[k]!==false}
 
 /* ---------- modelli dei documenti (sezioni come nell'app di cantiere) ---------- */
@@ -3028,7 +3031,7 @@ async function fileToCanvas(file,max){
 }
 function mPlan(bid){
   const plans=boardPlans(bid);let cur=UI.planId&&S.photos[UI.planId]&&S.photos[UI.planId].boardId===bid?UI.planId:(plans[0]&&plans[0][0]);UI.planId=cur||null;
-  const all=boardIssues(bid);const f=UI.issF||"open";
+  const all=boardIssues(bid);const f=UI.issF||"open";const sel=UI.issSel&&UI.issSel.bid===bid?UI.issSel.set:null;
   const shown=all.filter(x=>f==="all"||(f==="open"?x.status!=="chiusa":x.status===f));
   const onPlan=all.filter(x=>x.planId===cur&&x.x!=null);
   const cnt=k=>all.filter(x=>k==="open"?x.status!=="chiusa":x.status===k).length;
@@ -3036,12 +3039,13 @@ function mPlan(bid){
   return mTop("home","",CANWRITE?`<label class="mpill" style="cursor:pointer">+ Pianta<input type="file" id="plUp" accept="image/*,application/pdf" hidden></label>`:"")+`<div class="mlisthead">${chip("pin",44)}<h1 class="mh1" style="margin:0">Segnalazioni</h1></div>
   ${plans.length>1?`<div class="mchips">${plans.map(([id,x])=>`<button class="mchipb ${id===cur?"on":""}" data-plan="${id}">${esc(x.caption||"Pianta")}</button>`).join("")}</div>`:""}
   ${p?`<div class="mcard" style="padding:8px"><div class="planbox" id="planBox"><img src="${esc(photoSrc(p))}" alt="${esc(p.caption||"Pianta")}" draggable="false">
-    ${onPlan.map(x=>{const s=issueSt(x.status);return`<button class="pin" data-iss="${x.id}" style="left:${(x.x*100).toFixed(2)}%;top:${(x.y*100).toFixed(2)}%;background:${s[2]}" aria-label="Segnalazione ${x.n}: ${esc(x.title||"")}">${x.n}</button>`}).join("")}</div>
+    ${onPlan.map(x=>{const s=issueSt(x.status);return`<button class="pin${sel&&sel.has(x.id)?" pinsel":""}" data-iss="${x.id}" style="left:${(x.x*100).toFixed(2)}%;top:${(x.y*100).toFixed(2)}%;background:${s[2]}${sel&&!sel.has(x.id)?";opacity:.45":""}" aria-label="Segnalazione ${x.n}: ${esc(x.title||"")}">${x.n}</button>`}).join("")}</div>
     <div class="msmall" style="margin:8px 4px 2px">${CANWRITE?"Tocca un punto della pianta per aggiungere una segnalazione.":""} ${esc(p.caption||"")}${CANWRITE?` · <a href="#" id="plRen">Rinomina</a> · <a href="#" id="plDel" style="color:#B3261E">Elimina pianta</a>`:""}</div></div>`
    :`<div class="mcard mempty">Carica la pianta del cantiere (foto o PDF) con «+ Pianta», poi tocca un punto per segnalare un problema.${CANWRITE?'<br><br><button class="mpill" id="isNoPlan">Segnalazione senza pianta</button>':""}</div>`}
   <div class="mchips">${[["open","Da fare"],["aperta","Aperte"],["in corso","In corso"],["chiusa","Chiuse"],["all","Tutte"]].map(([k,l])=>`<button class="mchipb ${f===k?"on":""}" data-issf="${k}">${l} <b>${k==="all"?all.length:cnt(k)}</b></button>`).join("")}</div>
-  ${shown.length?`<div class="mcard msecs">${shown.map(x=>{const s=issueSt(x.status);const late=x.due&&x.status!=="chiusa"&&x.due<todayISO();return`<div class="mrow" data-iss="${x.id}"><span class="pinlist" style="background:${s[2]}">${x.n}</span><span class="grow" style="min-width:0"><span class="mst">${esc(x.title||"Segnalazione")}</span><span class="msd">${[s[1],x.impresa?esc(x.impresa):"",x.due?(late?"<b style='color:#B3261E'>scaduta "+fmtD(x.due)+"</b>":"entro "+fmtD(x.due)):""].filter(Boolean).join(" · ")}</span></span>${sic("chev",18,"#A3AFBF")}</div>`}).join("")}</div>`:'<div class="mempty2">Nessuna segnalazione in questo elenco</div>'}
-  ${all.length?`<button class="mbig" id="isPdf" style="margin-top:6px">${sic("pdf",20,"#fff")} PDF segnalazioni</button>`:""}`;
+  ${all.length?`<div class="row" style="justify-content:space-between;align-items:center;margin:-4px 2px 8px">${sel?`<span class="msd"><b>${sel.size}</b> selezionate</span><span><button class="mchipb" id="isSelAll">Tutte</button> <button class="mchipb" id="isSelNone">Nessuna</button> <button class="mchipb" id="isSelEnd">Fine</button></span>`:`<span></span><button class="mchipb" id="isSelOn">☑ Seleziona da inviare</button>`}</div>`:""}
+  ${shown.length?`<div class="mcard msecs">${shown.map(x=>{const s=issueSt(x.status);const late=x.due&&x.status!=="chiusa"&&x.due<todayISO();return`<div class="mrow" data-iss="${x.id}">${sel?`<input type="checkbox" class="isck" data-isck="${x.id}" ${sel.has(x.id)?"checked":""} aria-label="Seleziona segnalazione ${x.n}">`:""}<span class="pinlist" style="background:${s[2]}">${x.n}</span><span class="grow" style="min-width:0"><span class="mst">${esc(x.title||"Segnalazione")}</span><span class="msd">${[s[1],x.impresa?esc(x.impresa):"",x.due?(late?"<b style='color:#B3261E'>scaduta "+fmtD(x.due)+"</b>":"entro "+fmtD(x.due)):""].filter(Boolean).join(" · ")}</span></span>${sic("chev",18,"#A3AFBF")}</div>`}).join("")}</div>`:'<div class="mempty2">Nessuna segnalazione in questo elenco</div>'}
+  ${all.length?(sel?`<button class="mbig" id="isPdfSel" style="margin-top:6px" ${sel.size?"":"disabled"}>${sic("pdf",20,"#fff")} Invia PDF delle ${sel.size} selezionate</button>`:`<button class="mbig" id="isPdf" style="margin-top:6px">${sic("pdf",20,"#fff")} PDF di tutte le segnalazioni</button>`):""}`;
 }
 function bindPlan(){
   const bid=curBoard();
@@ -3049,8 +3053,14 @@ function bindPlan(){
     try{const c=await fileToCanvas(f,2400);const id=await storeCanvas(c,{boardId:bid,type:"plan",caption:f.name.replace(/\.[^.]+$/,"")});if(id){UI.planId=id;render()}}catch(err){toast("Pianta non caricata: "+(err&&err.message||""))}};
   document.querySelectorAll("[data-plan]").forEach(x=>x.onclick=()=>{UI.planId=x.dataset.plan;render()});
   document.querySelectorAll("[data-issf]").forEach(x=>x.onclick=()=>{UI.issF=x.dataset.issf;render()});
-  document.querySelectorAll("[data-iss]").forEach(x=>x.onclick=e=>{e.stopPropagation();issueSheet(x.dataset.iss)});
-  const box=$("#planBox");if(box&&CANWRITE)box.onclick=e=>{if(e.target.closest("[data-iss]"))return;const r=box.getBoundingClientRect();const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(x<0||x>1||y<0||y>1)return;issueSheet(null,{planId:UI.planId,x,y})};
+  const sel=UI.issSel&&UI.issSel.bid===bid?UI.issSel.set:null;
+  document.querySelectorAll("[data-iss]").forEach(x=>x.onclick=e=>{e.stopPropagation();if(sel){const id=x.dataset.iss;sel.has(id)?sel.delete(id):sel.add(id);render();return}issueSheet(x.dataset.iss)});
+  const so=$("#isSelOn");if(so)so.onclick=()=>{UI.issSel={bid,set:new Set()};render()};
+  const se=$("#isSelEnd");if(se)se.onclick=()=>{UI.issSel=null;render()};
+  const sa=$("#isSelAll");if(sa)sa.onclick=()=>{const f=UI.issF||"open";boardIssues(bid).filter(x=>f==="all"||(f==="open"?x.status!=="chiusa":x.status===f)).forEach(x=>sel.add(x.id));render()};
+  const sn=$("#isSelNone");if(sn)sn.onclick=()=>{sel.clear();render()};
+  const ps=$("#isPdfSel");if(ps)ps.onclick=()=>{if(sel&&sel.size)issuesPdf(bid,[...sel])};
+  const box=$("#planBox");if(box&&CANWRITE)box.onclick=e=>{if(e.target.closest("[data-iss]")||sel)return;const r=box.getBoundingClientRect();const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(x<0||x>1||y<0||y>1)return;issueSheet(null,{planId:UI.planId,x,y})};
   const np=$("#isNoPlan");if(np)np.onclick=()=>issueSheet(null,{});
   const rn=$("#plRen");if(rn)rn.onclick=e=>{e.preventDefault();const p=S.photos[UI.planId];inputDlg("Nome della pianta",p.caption||"",v=>{const q=clone(S.photos[UI.planId]);q.caption=v;put("photos",UI.planId,q)})};
   const pd=$("#plDel");if(pd)pd.onclick=e=>{e.preventDefault();const n=boardIssues(bid).filter(x=>x.planId===UI.planId).length;confirmDlg(n?`Eliminare la pianta? Le ${n} segnalazioni restano nell'elenco, senza posizione.`:"Eliminare la pianta?",()=>{boardIssues(bid).filter(x=>x.planId===UI.planId).forEach(x=>{const q=clone(S.issues[x.id]);delete q.planId;q.x=q.y=null;put("issues",x.id,q)});deletePhoto(UI.planId);UI.planId=null})};
@@ -3063,10 +3073,11 @@ function issueSheet(id,pos){
    <div class="mcard mform"><div class="mfrow"><label>Titolo</label><input class="minp" id="isT" value="${esc(cur.title)}" placeholder="Es. Fuga sotto lavello" ${ro?"readonly":""}></div>
     <div class="mfrow col"><label>Descrizione</label><textarea class="minp" id="isN" rows="4" ${ro?"readonly":""}>${esc(cur.note)}</textarea>${DICT&&!ro?'<button class="ib s" id="isMic" type="button">🎤 Detta</button>':""}</div>
     <div class="mfrow"><label>Stato</label><select class="minp" id="isS" ${ro?"disabled":""}>${ISSUE_ST.map(([k,l])=>`<option value="${k}" ${cur.status===k?"selected":""}>${l}</option>`).join("")}</select></div>
-    <div class="mfrow"><label>Impresa incaricata</label><input class="minp" id="isI" list="isIL" value="${esc(cur.impresa||"")}" ${ro?"readonly":""}><datalist id="isIL">${comps.map(c=>`<option>${esc(c.name)}</option>`).join("")}</datalist></div>
+    <div class="mfrow"><label>Impresa incaricata</label><input class="minp" id="isI" list="dlAziende" autocomplete="off" value="${esc(cur.impresa||"")}" ${ro?"readonly":""}></div>
     <div class="mfrow"><label>Da risolvere entro</label><input type="date" class="minp" id="isD" value="${esc(cur.due||"")}" ${ro?"readonly":""}></div></div>
    <div class="mlabel">Foto</div><div class="mcard" style="padding:10px"><div class="isph">${(cur.photos||[]).filter(pid=>S.photos[pid]).map(pid=>`<img src="${esc(photoSrc(S.photos[pid]))}" data-isview="${pid}" alt="">`).join("")||'<span class="msd">Nessuna foto</span>'}</div>
     ${ro?"":`<div class="row" style="margin-top:8px"><label class="ib">📷 Scatta<input type="file" accept="image/*" capture="environment" id="isCam" hidden></label><label class="ib">🖼 Galleria<input type="file" accept="image/*" multiple id="isGal" hidden></label></div>`}</div>
+   ${id?'<button class="mbig" id="isSend" style="background:#2457C5">Invia questa segnalazione (PDF)</button>':""}
    ${id&&!ro?'<button class="mbig" id="isDel" style="background:#fff;color:#B3261E;border:1px solid #B3261E">Elimina segnalazione</button>':""}`;
   const keep=root=>{const v=s=>root.querySelector(s);if(!v("#isT"))return;cur.title=v("#isT").value;cur.note=v("#isN").value;cur.status=v("#isS").value;cur.impresa=v("#isI").value;cur.due=v("#isD").value};
   const bind=root=>{
@@ -3083,13 +3094,14 @@ function issueSheet(id,pos){
       if(!id){cur.n=boardIssues(bid).reduce((m,x)=>Math.max(m,x.n||0),0)+1;cur.at=nowISO();cur.by=ME.id}
       if(cur.status==="chiusa"&&!cur.closedAt)cur.closedAt=nowISO();if(cur.status!=="chiusa")delete cur.closedAt;
       put("issues",id||uid(),cur);closeModal()};
+    const snd=root.querySelector("#isSend");if(snd)snd.onclick=()=>{closeModal();issuesPdf(bid,[id])};
     const del=root.querySelector("#isDel");if(del)del.onclick=()=>confirmDlg("Eliminare la segnalazione e le sue foto?",()=>{(cur.photos||[]).forEach(pid=>deletePhoto(pid));del2("issues",id);closeModal(false,true)});
   };
   modal(draw(),"sheet",bind);
 }
 const del2=(c,i)=>del(c,i);
-async function issuesPdf(bid){
-  const b=S.boards[bid];const list=boardIssues(bid);if(!list.length)return;toast("Preparo il PDF…");
+async function issuesPdf(bid,only){
+  const b=S.boards[bid];const list=boardIssues(bid).filter(x=>!only||only.includes(x.id));if(!list.length)return;toast("Preparo il PDF…");
   try{await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");try{await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js")}catch(_){}
     const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});
     doc.setFontSize(16);doc.text("Segnalazioni – "+(b.name||""),14,16);doc.setFontSize(10);doc.setTextColor(110);doc.text("Aggiornato al "+fmtD(todayISO())+" · "+(company().name||""),14,22);doc.setTextColor(0);
@@ -3104,11 +3116,22 @@ async function issuesPdf(bid){
     doc.autoTable({startY:y,head:[["N.","Segnalazione","Stato","Impresa","Entro","Note"]],body:list.map(x=>[x.n,x.title||"",issueSt(x.status)[1],x.impresa||"",x.due?fmtD(x.due):"",x.note||""]),styles:{fontSize:9},headStyles:{fillColor:[36,87,197]}});
     for(const x of list){const ph=(x.photos||[]).filter(pid=>S.photos[pid]);if(!ph.length)continue;doc.addPage();doc.setFontSize(12);doc.text(`N. ${x.n} – ${x.title||""}`,14,16);let yy=22,xx=14;
       for(const pid of ph){const d=await imgData(S.photos[pid]);if(!d)continue;const p=S.photos[pid];const w=88,h=Math.min(110,w*(p.h||3)/(p.w||4));if(yy+h>285){doc.addPage();yy=14;xx=14}doc.addImage(d,"JPEG",xx,yy,w,h);if(xx>14){xx=14;yy+=h+4}else xx=108}}
-    if(await saveFile("Segnalazioni_"+safeName(b.name)+".pdf",doc.output("blob")))toast("PDF pronto");
+    const fn=list.length===1?`Segnalazione_${list[0].n}_${safeName(list[0].title)}.pdf`:"Segnalazioni_"+safeName(b.name)+(only?"_"+list.map(x=>x.n).join("-"):"")+".pdf";
+    if(await saveFile(fn,doc.output("blob")))toast("PDF pronto");
   }catch(e){toast("PDF non riuscito: "+(e&&e.message||""))}
 }
 
 /* ================= imprese e documenti ================= */
+const COMP_TYPES=["Subappaltatore","Fornitore","Noleggiatore","Cliente / committente","Professionista / tecnico","Altro"];
+/* tendina delle aziende registrate su ogni campo "impresa / ditta / committente" */
+const AZ_SEL='[data-sf="org"],[data-sf="company"],[data-sf="impresa"],[data-minfo="impresa"],[data-minfo="committente"],[data-k="impresa"],[data-k="committente"],[data-k="cliente"],[data-pk="company"],[data-pk="employer"],[data-tb$="|company"],[data-tb$="|org"],#isI,#nbCli,#scP2';
+function syncAziende(){
+  let dl=document.getElementById("dlAziende");if(!dl){dl=document.createElement("datalist");dl.id="dlAziende";document.body.appendChild(dl)}
+  const key=companyList().map(c=>c.name+"|"+(c.tipo||"")).join(";");
+  if(dl._k!==key){dl._k=key;dl.innerHTML=companyList().map(c=>`<option value="${esc(c.name)}"${c.tipo?` label="${esc(c.tipo)}"`:""}></option>`).join("")}
+  document.querySelectorAll(AZ_SEL).forEach(i=>{if(i.tagName==="INPUT"&&i.getAttribute("list")!=="dlAziende"&&!i.readOnly){i.setAttribute("list","dlAziende");i.setAttribute("autocomplete","off")}});
+}
+let AZ_T=null;new MutationObserver(()=>{if(AZ_T)return;AZ_T=setTimeout(()=>{AZ_T=null;try{syncAziende()}catch(_){}},60)}).observe(document.documentElement,{childList:true,subtree:true});
 const CDOC_TYPES=["DURC","Visura camerale","POS","DVR / autocertificazione","Polizza RCT/RCO","Idoneità tecnico-professionale","Iscrizione white list","Nomina RSPP","Elenco lavoratori e UNILAV","Altro"];
 function companyList(){return Object.entries(S.companies).map(([id,c])=>Object.assign({id},c)).sort((a,b2)=>(a.name||"").localeCompare(b2.name||""))}
 function companyState(c){const st=(c.docs||[]).map(d=>docState(d.expiry));return st.includes("late")?"late":st.includes("soon")?"soon":(c.docs||[]).length?"ok":""}
@@ -3121,17 +3144,17 @@ function lateCompaniesOnSite(bid,date){
 }
 function mImprese(){
   const list=companyList();const lbl={late:"Documenti scaduti",soon:"In scadenza",ok:"In regola","":"Nessun documento"};
-  return mTop("home","",CANWRITE?mPill("imNew","+ Impresa"):"")+`<div class="mlisthead">${chip("imprese",44)}<h1 class="mh1" style="margin:0">Imprese</h1></div>
-  <div class="msub" style="margin:-6px 0 12px">Subappaltatori e fornitori con DURC, POS e gli altri documenti. Chi ha documenti scaduti viene segnalato nelle Presenze.</div>
+  return mTop("home","",CANWRITE?mPill("imNew","+ Azienda"):"")+`<div class="mlisthead">${chip("imprese",44)}<h1 class="mh1" style="margin:0">Aziende</h1></div>
+  <div class="msub" style="margin:-6px 0 12px">Subappaltatori, fornitori, clienti e professionisti. Quando scrivi un'azienda nel programma compaiono a tendina. Chi ha documenti scaduti viene segnalato nelle Presenze.</div>
   ${list.length?`<div class="mcard msecs">${list.map(c=>{const st=companyState(c);const next=(c.docs||[]).filter(d=>d.expiry).sort((a,b2)=>a.expiry.localeCompare(b2.expiry))[0];
-    return`<div class="mrow" data-imp="${c.id}">${chip("imprese",38)}<span class="grow" style="min-width:0"><span class="mst">${esc(c.name)}</span><span class="msd">${(c.docs||[]).length} documenti${next?" · prossima scadenza "+esc(next.type)+" "+fmtD(next.expiry):""}</span></span><span class="chip ${st}">${lbl[st]}</span>${sic("chev",18,"#A3AFBF")}</div>`}).join("")}</div>`
-   :'<div class="mempty2" style="margin-top:20vh">Nessuna impresa<br>Aggiungi i subappaltatori con «+ Impresa»</div>'}`;
+    return`<div class="mrow" data-imp="${c.id}">${chip("imprese",38)}<span class="grow" style="min-width:0"><span class="mst">${esc(c.name)}</span><span class="msd">${c.tipo?esc(c.tipo)+" · ":""}${(c.docs||[]).length} documenti${next?" · prossima scadenza "+esc(next.type)+" "+fmtD(next.expiry):""}</span></span><span class="chip ${st}">${lbl[st]}</span>${sic("chev",18,"#A3AFBF")}</div>`}).join("")}</div>`
+   :'<div class="mempty2" style="margin-top:20vh">Nessuna azienda<br>Aggiungile con «+ Azienda»</div>'}`;
 }
 function bindImprese(){const n=$("#imNew");if(n)n.onclick=()=>companySheet(null);document.querySelectorAll("[data-imp]").forEach(x=>x.onclick=()=>companySheet(x.dataset.imp))}
 function companySheet(id){
-  const ro=!CANWRITE;const cur=id?clone(S.companies[id]):{name:"",piva:"",ref:"",tel:"",email:"",docs:[]};cur.docs=cur.docs||[];
-  const draw=()=>`<div class="sheetbar"><button class="mpill light" data-close>${ro?"Chiudi":"Annulla"}</button><b>${id?esc(cur.name):"Nuova impresa"}</b>${ro?"<span></span>":'<button class="mpill light" id="cpOk">Salva</button>'}</div>
-   <div class="mcard mform">${[["name","Ragione sociale"],["piva","Partita IVA"],["ref","Referente"],["tel","Telefono","tel"],["email","Email","email"]].map(([k,l,t])=>`<div class="mfrow"><label>${l}</label><input class="minp" data-cp="${k}" type="${t||"text"}" value="${esc(cur[k]||"")}" ${ro?"readonly":""}></div>`).join("")}</div>
+  const ro=!CANWRITE;const cur=id?clone(S.companies[id]):{name:"",tipo:"Subappaltatore",piva:"",ref:"",tel:"",email:"",docs:[]};cur.docs=cur.docs||[];
+  const draw=()=>`<div class="sheetbar"><button class="mpill light" data-close>${ro?"Chiudi":"Annulla"}</button><b>${id?esc(cur.name):"Nuova azienda"}</b>${ro?"<span></span>":'<button class="mpill light" id="cpOk">Salva</button>'}</div>
+   <div class="mcard mform"><div class="mfrow"><label>Tipo</label><select class="minp" data-cp="tipo" ${ro?"disabled":""}>${COMP_TYPES.map(t=>`<option ${t===(cur.tipo||"")?"selected":""}>${t}</option>`).join("")}</select></div>${[["name","Ragione sociale"],["piva","Partita IVA"],["indirizzo","Indirizzo"],["ref","Referente"],["tel","Telefono","tel"],["email","Email","email"]].map(([k,l,t])=>`<div class="mfrow"><label>${l}</label><input class="minp" data-cp="${k}" type="${t||"text"}" value="${esc(cur[k]||"")}" ${ro?"readonly":""}></div>`).join("")}</div>
    <div class="mlabel">Documenti</div><div class="mcard mform">${cur.docs.map((d,i)=>{const st=docState(d.expiry);return`<div class="cdoc"><div class="row" style="gap:8px"><select class="minp" data-cdt="${i}" ${ro?"disabled":""} style="flex:1">${[...new Set(CDOC_TYPES.concat(d.type||[]))].map(t=>`<option ${t===d.type?"selected":""}>${esc(t)}</option>`).join("")}</select><span class="chip ${st}">${st==="late"?"Scaduto":st==="soon"?"In scadenza":st==="ok"?"Valido":"—"}</span></div>
      <div class="row" style="gap:8px;margin-top:6px"><label class="msd" style="min-width:70px">Scadenza</label><input type="date" class="minp" data-cde="${i}" value="${esc(d.expiry||"")}" ${ro?"readonly":""} style="flex:1">
      ${d.photoId&&S.pphotos[d.photoId]?`<button class="ib s" data-cdv="${i}">Vedi</button>`:""}${ro?"":`<button class="ib s" data-cds="${i}">${d.photoId?"Riscansiona":"📄 Allega"}</button><button class="ib s d" data-cdx="${i}" aria-label="Togli documento">✕</button>`}</div></div>`}).join("")||'<div class="mrow"><span class="msd">Nessun documento</span></div>'}
@@ -3144,8 +3167,8 @@ function companySheet(id){
     root.querySelectorAll("[data-cdx]").forEach(x=>x.onclick=()=>{keep(root);cur.docs.splice(+x.dataset.cdx,1);root._reb()});
     root.querySelectorAll("[data-cds]").forEach(x=>x.onclick=()=>{keep(root);const i=+x.dataset.cds;scanDlg({title:"Documento impresa",single:true,onDone:async pgs=>{if(!pgs[0])return;const pid=await storeCanvas(pgs[0],{companyDoc:true},"pphotos");if(pid){cur.docs[i].photoId=pid;root._reb()}}})});
     root.querySelectorAll("[data-cdv]").forEach(x=>x.onclick=()=>{const p=S.pphotos[cur.docs[+x.dataset.cdv].photoId];modal(`<img src="${esc(photoSrc(p))}" style="width:100%;border-radius:8px">`,"",null,true)});
-    const ok=root.querySelector("#cpOk");if(ok)ok.onclick=()=>{keep(root);if(!cur.name){toast("Scrivi la ragione sociale");return}cur.docs=cur.docs.filter(d=>d.type);put("companies",id||uid(),cur);closeModal()};
-    const d=root.querySelector("#cpDel");if(d)d.onclick=()=>confirmDlg("Eliminare l'impresa e i suoi documenti?",()=>{del("companies",id);closeModal(false,true)});
+    const ok=root.querySelector("#cpOk");if(ok)ok.onclick=()=>{keep(root);if(!cur.name){toast("Scrivi la ragione sociale");return}const dup=companyByName(cur.name);if(dup&&dup.id!==id){toast("Esiste già un'azienda con questo nome");return}cur.docs=cur.docs.filter(d=>d.type);put("companies",id||uid(),cur);closeModal()};
+    const d=root.querySelector("#cpDel");if(d)d.onclick=()=>confirmDlg("Eliminare l'azienda e i suoi documenti?",()=>{del("companies",id);closeModal(false,true)});
   };
   modal(draw(),"sheet",bind);
 }
@@ -3189,7 +3212,7 @@ function allDeadlines(){
   const st=d=>{const dd=daysBetween(t,d);return dd<0?"late":dd<=7?"week":dd<=30?"soon":""};
   dueList().forEach(c=>{const d=c.due.slice(0,10);out.push({id:"c:"+c.id,kind:"Attività",label:c.title,sub:(S.boards[c.boardId]||{}).name||"",date:d,st:st(d),open:()=>{go("b-"+c.boardId);setTimeout(()=>openCard(c.id),60)}})});
   if(modOn("scadenzario"))personList().forEach(p=>(p.docs||[]).forEach((d,i)=>{if(!d.expiry)return;const s=st(d.expiry);if(s)out.push({id:"p:"+p.id+":"+i,kind:"Personale",label:d.type,sub:p.name,date:d.expiry,st:s,open:()=>scadSheet(p.id,i)})}));
-  if(modOn("imprese"))companyList().forEach(c=>(c.docs||[]).forEach((d,i)=>{if(!d.expiry)return;const s=st(d.expiry);if(s)out.push({id:"i:"+c.id+":"+i,kind:"Imprese",label:d.type,sub:c.name,date:d.expiry,st:s,open:()=>companySheet(c.id)})}));
+  if(modOn("imprese"))companyList().forEach(c=>(c.docs||[]).forEach((d,i)=>{if(!d.expiry)return;const s=st(d.expiry);if(s)out.push({id:"i:"+c.id+":"+i,kind:"Aziende",label:d.type,sub:c.name,date:d.expiry,st:s,open:()=>companySheet(c.id)})}));
   if(modOn("planimetria"))Object.entries(S.issues).forEach(([id,x])=>{if(!x.due||x.status==="chiusa")return;const s=st(x.due);if(s)out.push({id:"s:"+id,kind:"Segnalazioni",label:"N. "+x.n+" – "+(x.title||""),sub:(S.boards[x.boardId]||{}).name||"",date:x.due,st:s,open:()=>{setCur(x.boardId);go("m-planimetria");setTimeout(()=>issueSheet(id),80)}})});
   return out.sort((a,b2)=>a.date.localeCompare(b2.date));
 }
