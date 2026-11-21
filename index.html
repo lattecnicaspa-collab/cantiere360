@@ -479,13 +479,64 @@ const USERAPI={
   async profiles(ids){const o={};(ids||[]).forEach(i=>{if(i===UID)o[i]={name:displayName()}});
     const need=(ids||[]).filter(i=>i&&!o[i]);if(need.length){const {data}=await sb.from("kv").select("id,data").eq("col","_profiles").in("id",need);(data||[]).forEach(r=>{o[r.id]={name:(r.data&&r.data.name)||""}})}return o}
 };
+/* ---------- dettatura (Web Speech API) ---------- */
+function mkDict(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return null;
+  const finals=new Set(),states=new Set();let rec=null,want=false,state="idle";
+  const setState=st=>{state=st;states.forEach(f=>{try{f({state:st})}catch(_){}})};
+  const mkErr=c=>{const e=new Error(c);e.code=c;return e};
+  function boot(lang,resolve,reject){
+    rec=new SR();rec.lang=lang;rec.continuous=true;rec.interimResults=false;rec.maxAlternatives=1;
+    let started=false;
+    rec.onstart=()=>{started=true;setState("listening");resolve&&resolve();resolve=null};
+    rec.onresult=ev=>{for(let i=ev.resultIndex;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal){const t=(r[0]&&r[0].transcript||"").trim();if(t)finals.forEach(f=>{try{f({text:" "+t})}catch(_){}})}}};
+    rec.onerror=ev=>{const c=ev.error;
+      if(c==="not-allowed"||c==="service-not-allowed"){want=false;const e=mkErr("not_granted");if(reject){reject(e);reject=null}else{try{toast("Microfono non autorizzato")}catch(_){}}}
+      else if(c==="network"||c==="audio-capture"){want=false;if(reject){reject(mkErr("unavailable"));reject=null}else{try{toast("Dettatura interrotta: controlla rete e microfono")}catch(_){}}}};
+    rec.onend=()=>{if(want){try{boot(lang)}catch(_){want=false;setState("idle")}}else setState("idle")};
+    try{rec.start()}catch(e){want=false;reject&&reject(mkErr("unavailable"))}
+  }
+  return{
+    start(o){if(want)return Promise.resolve();want=true;const lang=((o&&o.language)||"it")==="it"?"it-IT":o.language;
+      return new Promise((res,rej)=>boot(lang,res,rej))},
+    async stop(){want=false;if(rec){setState("finishing");try{rec.stop()}catch(_){setState("idle")}}},
+    active(){return want},
+    onFinal(f){finals.add(f);return()=>finals.delete(f)},
+    onState(f){states.add(f);return()=>states.delete(f)}
+  };
+}
+const DICTAPI=mkDict();
+
+/* ---------- salvataggio e condivisione file ---------- */
+function shareSheet(file){
+  return new Promise(resolve=>{
+    const w=document.createElement("div");
+    w.style.cssText="position:fixed;inset:0;z-index:9500;background:rgba(20,33,61,.45);display:flex;align-items:flex-end;justify-content:center;font-family:Manrope,system-ui,sans-serif";
+    w.innerHTML=`<div role="dialog" aria-label="Documento pronto" style="background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:520px;padding:20px 18px calc(18px + env(safe-area-inset-bottom));box-sizing:border-box;color:#14213D">
+      <div style="font-weight:800;font-size:19px;margin-bottom:2px">Documento pronto</div>
+      <div style="color:#5B6B82;font-size:14px;margin-bottom:16px;word-break:break-all">${file.name.replace(/[<>&"]/g,"")}</div>
+      <button data-a="share" style="width:100%;border:0;border-radius:14px;background:#2457C5;color:#fff;font:inherit;font-weight:800;font-size:17px;padding:14px;margin-bottom:10px">Condividi (WhatsApp, email…)</button>
+      <button data-a="save" style="width:100%;border:1px solid #CBD3DE;border-radius:14px;background:#fff;color:#14213D;font:inherit;font-weight:700;font-size:16px;padding:13px;margin-bottom:6px">Scarica sul dispositivo</button>
+      <button data-a="close" style="width:100%;border:0;background:none;color:#5B6B82;font:inherit;font-weight:700;padding:10px">Chiudi</button></div>`;
+    const done=v=>{w.remove();resolve(v)};
+    w.addEventListener("click",async e=>{const a=e.target.closest&&e.target.closest("[data-a]");if(!a){if(e.target===w)done("close");return}
+      if(a.dataset.a==="share"){try{await navigator.share({files:[file],title:file.name});done("share")}catch(err){if(err&&err.name==="AbortError")return;download(file);done("save")}}
+      else if(a.dataset.a==="save"){download(file);done("save")}else done("close")});
+    document.body.appendChild(w);w.querySelector("[data-a=share]").focus();
+  });
+}
+function download(blob){const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=blob.name||"documento";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
 const DLAPI={async save({filename,data}){
   let blob=data;
   if(typeof data==="string"){if(/^data:/.test(data)){blob=await (await fetch(data)).blob()}else blob=new Blob([data],{type:/\.csv$/i.test(filename)?"text/csv;charset=utf-8":/\.json$/i.test(filename)?"application/json":"text/plain;charset=utf-8"})}
   else if(data instanceof ArrayBuffer||ArrayBuffer.isView(data))blob=new Blob([data],{type:/\.pdf$/i.test(filename)?"application/pdf":"application/octet-stream"});
-  const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);
+  const type=blob.type||(/\.pdf$/i.test(filename)?"application/pdf":/\.csv$/i.test(filename)?"text/csv":"application/octet-stream");
+  const file=new File([blob],filename,{type});
+  let canShare=false;try{canShare=!!(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]}))}catch(_){}
+  if(canShare){const r=await shareSheet(file);if(r==="close"){const e=new Error("declined");e.code="declined";throw e}return}
+  download(file);
 }};
-window.claude={use:async(name)=>({db:DB,user:USERAPI,assets:ASSETS,downloads:DLAPI})[name]||null};
+window.claude={use:async(name)=>({db:DB,user:USERAPI,assets:ASSETS,downloads:DLAPI,dictation:DICTAPI})[name]||null};
 
 /* ---------- accesso ---------- */
 function gate(){
@@ -1396,7 +1447,7 @@ function reportText(r){
 const MIC={rid:null,field:null,state:"idle"};
 function micBtn(field,locked){if(!DICT||locked)return"";const on=MIC.state!=="idle"&&MIC.field===field;return`<button class="ib s" data-mic="${field}" style="margin-bottom:4px;${on?"background:var(--bad);color:#fff":""}">${on?"■ Stop dettatura":"🎤 Detta"}</button>`}
 function setupDict(d){
-  d.onState(e=>{MIC.state=e.state;const top=MSTACK[MSTACK.length-1];if(top&&top.firstElementChild._reb&&e.state!=="finishing")top.firstElementChild._reb()});
+  d.onState(e=>{MIC.state=e.state;if(!MIC.field)return;const top=MSTACK[MSTACK.length-1];if(top&&top.firstElementChild._reb&&e.state!=="finishing")top.firstElementChild._reb();if(e.state==="idle"){MIC.field=null;MIC.rid=null}});
   d.onFinal(({text})=>{if(!MIC.rid||!MIC.field||!S.reports[MIC.rid])return;const r=clone(S.reports[MIC.rid]);if(r.status==="firmato")return;
     const cur=r[MIC.field]||"";r[MIC.field]=cur?cur+text:text.replace(/^\s+/,"");put("reports",MIC.rid,r);
     const ta=document.querySelector(`[data-f="${MIC.field}"]`);if(ta)ta.value=r[MIC.field]});
