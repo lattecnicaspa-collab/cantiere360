@@ -38,7 +38,7 @@ const fd = (x?: string) => { if (!x) return ""; const p = String(x).slice(0, 10)
 const cut = (x: unknown) => String(x ?? "").slice(0, 60);
 function describe(col: string, d: any, ins: boolean): string | null {
   d = d || {}; const v = ins ? "ha aggiunto" : "ha modificato";
-  const T: Record<string, string> = { giornale: "il giornale dei lavori", sopralluogo: "il verbale di sopralluogo", cse: "il verbale CSE", sal: "il rapportino / SAL" };
+  const T: Record<string, string> = { giornale: "il giornale dei lavori", sopralluogo: "il verbale di sopralluogo", cse: "il verbale CSE", sal: "il rapportino / SAL", consegna: "il verbale di consegna lavori", ordine: "l'ordine di servizio", sospensione: "il verbale di sospensione", ripresa: "il verbale di ripresa", ultimazione: "il verbale di ultimazione" };
   switch (col) {
     case "reports": return `${v} ${T[d.mtype] || "il rapportino"} del ${fd(d.date)}`;
     case "boards": return `${v} il cantiere «${cut(d.name)}»`;
@@ -71,7 +71,7 @@ async function deadlines() {
     const x = r.data || {};
     if (r.col === "people" && on("scadenzario")) (x.docs || []).forEach((d: any) => add(d.expiry, `${d.type} (${x.name})`));
     if (r.col === "companies" && on("imprese")) (x.docs || []).forEach((d: any) => add(d.expiry, `${d.type} (${x.name})`));
-    if (r.col === "issues" && on("planimetria") && x.status !== "chiusa") add(x.due, `Segnalazione n. ${x.n} ${x.title || ""}`);
+    if (r.col === "issues" && on("planimetria") && x.status !== "chiusa" && x.status !== "risolta") add(x.due, `Difetto n. ${x.n} ${x.title || ""}${x.impresa ? " – " + x.impresa : ""}${boards[x.boardId] ? " (" + boards[x.boardId].name + ")" : ""}`);
     if (r.col === "cards" && x.due && !x.done && !x.dueDone && !x.archived && boards[x.boardId] && !boards[x.boardId].archived) add(x.due, `${x.title} (${boards[x.boardId].name})`);
   }
   out.sort((a, b) => a.d.localeCompare(b.d));

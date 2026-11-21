@@ -1,0 +1,4 @@
+Lettura dei file DWG/DXF in Cantiere360.
+Libreria: @mlightcad/libredwg-web 0.9.2 (licenza GPL-3.0), basata su GNU LibreDWG.
+Sorgente: https://github.com/mlightcad/libredwg-web  –  https://www.gnu.org/software/libredwg/
+I file in dist/ e wasm/ sono copiati senza modifiche dal pacchetto npm.
