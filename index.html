@@ -482,24 +482,27 @@ const USERAPI={
 /* ---------- dettatura (Web Speech API) ---------- */
 function mkDict(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return null;
-  const finals=new Set(),states=new Set();let rec=null,want=false,state="idle";
-  const setState=st=>{state=st;states.forEach(f=>{try{f({state:st})}catch(_){}})};
+  const finals=new Set(),states=new Set();let rec=null,want=false,pend="",endWait=null;
+  const setState=st=>{states.forEach(f=>{try{f({state:st})}catch(_){}})};
+  const emit=t=>{t=(t||"").trim();if(t)finals.forEach(f=>{try{f({text:" "+t})}catch(_){}})};
   const mkErr=c=>{const e=new Error(c);e.code=c;return e};
   function boot(lang,resolve,reject){
-    rec=new SR();rec.lang=lang;rec.continuous=true;rec.interimResults=false;rec.maxAlternatives=1;
-    let started=false;
-    rec.onstart=()=>{started=true;setState("listening");resolve&&resolve();resolve=null};
-    rec.onresult=ev=>{for(let i=ev.resultIndex;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal){const t=(r[0]&&r[0].transcript||"").trim();if(t)finals.forEach(f=>{try{f({text:" "+t})}catch(_){}})}}};
+    rec=new SR();rec.lang=lang;rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=1;pend="";
+    rec.onstart=()=>{setState("listening");if(resolve){resolve();resolve=null}};
+    rec.onresult=ev=>{let interim="";for(let i=ev.resultIndex;i<ev.results.length;i++){const r=ev.results[i];const t=r[0]&&r[0].transcript||"";if(r.isFinal)emit(t);else interim+=t}pend=interim};
     rec.onerror=ev=>{const c=ev.error;
-      if(c==="not-allowed"||c==="service-not-allowed"){want=false;const e=mkErr("not_granted");if(reject){reject(e);reject=null}else{try{toast("Microfono non autorizzato")}catch(_){}}}
-      else if(c==="network"||c==="audio-capture"){want=false;if(reject){reject(mkErr("unavailable"));reject=null}else{try{toast("Dettatura interrotta: controlla rete e microfono")}catch(_){}}}};
-    rec.onend=()=>{if(want){try{boot(lang)}catch(_){want=false;setState("idle")}}else setState("idle")};
-    try{rec.start()}catch(e){want=false;reject&&reject(mkErr("unavailable"))}
+      if(c==="not-allowed"||c==="service-not-allowed"){want=false;if(reject){reject(mkErr("not_granted"));reject=null}else{try{toast("Microfono non autorizzato")}catch(_){}}}
+      else if(c==="network"||c==="audio-capture"||c==="language-not-supported"){want=false;if(reject){reject(mkErr("unavailable"));reject=null}else{try{toast("Dettatura interrotta: controlla rete e microfono")}catch(_){}}}};
+    rec.onend=()=>{if(pend){emit(pend);pend=""}
+      if(reject){reject(mkErr("unavailable"));reject=null;resolve=null}
+      if(want){try{boot(lang)}catch(_){want=false;setState("idle")}}else{setState("idle");if(endWait){endWait();endWait=null}}};
+    try{rec.start()}catch(e){want=false;if(reject){reject(mkErr("unavailable"));reject=null}}
   }
   return{
-    start(o){if(want)return Promise.resolve();want=true;const lang=((o&&o.language)||"it")==="it"?"it-IT":o.language;
+    start(o){if(want)return Promise.resolve();want=true;const l=(o&&o.language)||"it";const lang=l==="it"?"it-IT":l;
       return new Promise((res,rej)=>boot(lang,res,rej))},
-    async stop(){want=false;if(rec){setState("finishing");try{rec.stop()}catch(_){setState("idle")}}},
+    stop(){want=false;if(!rec)return Promise.resolve();setState("finishing");
+      return new Promise(r=>{endWait=r;try{rec.stop()}catch(_){r()}setTimeout(()=>{if(endWait===r){endWait=null;r()}},2500)})},
     active(){return want},
     onFinal(f){finals.add(f);return()=>finals.delete(f)},
     onState(f){states.add(f);return()=>states.delete(f)}
@@ -2622,8 +2625,13 @@ function itemSheet(r,s,idx){
    ${idx!=null?'<button class="mbig" id="shDel" style="background:#fff;color:#e35d4a;border:1px solid #e35d4a">Elimina voce</button>':""}`,"sheet",root=>{
     const onName=root.querySelector('[data-sf="name"]');
     if(onName&&s.f.some(f=>f[0]==="rate"||f[0]==="role"))onName.onchange=()=>{const p=personByName(onName.value);if(!p)return;const rr=root.querySelector('[data-sf="rate"]'),ro2=root.querySelector('[data-sf="role"]'),og=root.querySelector('[data-sf="org"]');if(rr&&!rr.value&&p.cost)rr.value=p.cost;if(ro2&&!ro2.value&&p.role)ro2.value=p.role;if(og&&!og.value&&p.company)og.value=p.company};
-    root.querySelectorAll("[data-mic2]").forEach(x=>x.onclick=()=>{const ta=root.querySelector(`[data-sf="${x.dataset.mic2}"]`);const off=DICT.onFinal(({text})=>{ta.value=(ta.value?ta.value+text:text.replace(/^\s+/,""))});
-      DICT.start({language:"it"}).catch(e=>{off();if(e&&e.code!=="stopped")toast("Dettatura non disponibile")});x.textContent="■ Stop";x.onclick=()=>{DICT.stop().catch(()=>{});off();x.textContent="🎤 Detta"}});
+    root.querySelectorAll("[data-mic2]").forEach(x=>{const fin=()=>{x._on=false;x.textContent="🎤 Detta";const o=x._off,o2=x._offS;x._off=x._offS=null;o&&o();o2&&o2()};
+      x.onclick=async()=>{const ta=root.querySelector(`[data-sf="${x.dataset.mic2}"]`);
+        if(x._on){x.textContent="…";try{await DICT.stop()}catch(_){}fin();return}
+        x._off=DICT.onFinal(({text})=>{ta.value=(ta.value?ta.value+text:text.replace(/^\s+/,""));ta.dispatchEvent(new Event("input",{bubbles:true}))});
+        x._offS=DICT.onState(e=>{if(e.state==="idle"&&x._on)fin()});
+        x._on=true;x.textContent="■ Stop";
+        try{await DICT.start({language:"it"})}catch(e){fin();toast(e&&e.code==="not_granted"?"Microfono non autorizzato: consentilo nelle impostazioni del browser":"Dettatura non disponibile su questo dispositivo")}}});
     root.querySelector("#shOk").onclick=()=>{root.querySelectorAll("[data-sf]").forEach(x=>it[x.dataset.sf]=x.value.trim());
       if(!String(it[s.f[0][0]]||"").trim()){toast("Compila «"+s.f[0][1]+"»");return}
       const rr=clone(S.reports[r.id||UI.rid]);rr.sec=rr.sec||{};rr.sec[s.k]=rr.sec[s.k]||[];if(idx!=null)rr.sec[s.k][idx]=it;else rr.sec[s.k].push(it);put("reports",UI.rid,rr);closeModal();render()};
