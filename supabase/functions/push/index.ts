@@ -58,6 +58,19 @@ async function nameOf(uid: string) {
 }
 function today() { return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" }); }
 const days = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 864e5);
+function addD(iso: string, n: number) { if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ""))) return ""; const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+function gseDue(pr: any, t: string): { d: string; l: string }[] {
+  const g = pr?.gse || {}; const out: { d: string; l: string }[] = [];
+  if (addD(g.esito, 60) && !g.conf && !g.confFatta) out.push({ d: addD(g.esito, 60), l: "Conferma GSE con acconto del 20%" });
+  const comp = g.compl || g.complFatta;
+  if (!comp) { out.push({ d: "2028-09-30", l: "Investimento da completare" }); out.push({ d: "2028-11-15", l: "Comunicazione di completamento GSE" }); }
+  else {
+    const y = +t.slice(0, 4); let nx = "";
+    for (const yy of [y, y + 1]) { for (const md of ["-01-20", "-06-30"]) { const d = yy + md; if (!nx && d >= t && (!/^\d{4}$/.test(String(g.fineAmm || "")) || yy <= +g.fineAmm)) nx = d; } }
+    if (nx) out.push({ d: nx, l: "Comunicazione periodica GSE" });
+  }
+  return out;
+}
 async function deadlines() {
   const t = today();
   const { data } = await admin.from("kv").select("col,id,data").in("col", ["people", "companies", "issues", "cards", "boards", "settings"]);
@@ -72,6 +85,7 @@ async function deadlines() {
     if (r.col === "people" && on("scadenzario")) (x.docs || []).forEach((d: any) => add(d.expiry, `${d.type} (${x.name})`));
     if (r.col === "companies" && on("imprese")) (x.docs || []).forEach((d: any) => add(d.expiry, `${d.type} (${x.name})`));
     if (r.col === "issues" && on("planimetria") && x.status !== "chiusa" && x.status !== "risolta") add(x.due, `Difetto n. ${x.n} ${x.title || ""}${x.impresa ? " – " + x.impresa : ""}${boards[x.boardId] ? " (" + boards[x.boardId].name + ")" : ""}`);
+    if (r.col === "boards" && x.tipo === "perizia" && !x.archived && x.pratica && x.pratica.agev === "Iperammortamento 2026") gseDue(x.pratica, t).forEach((g) => add(g.d, `${g.l} – ${x.info?.codice ? x.info.codice + " " : ""}${x.name} (promemoria per il cliente)`));
     if (r.col === "cards" && x.due && !x.done && !x.dueDone && !x.archived && boards[x.boardId] && !boards[x.boardId].archived) add(x.due, `${x.title} (${boards[x.boardId].name})`);
   }
   out.sort((a, b) => a.d.localeCompare(b.d));
