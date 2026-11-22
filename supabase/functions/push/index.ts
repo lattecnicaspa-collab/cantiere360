@@ -38,10 +38,10 @@ const fd = (x?: string) => { if (!x) return ""; const p = String(x).slice(0, 10)
 const cut = (x: unknown) => String(x ?? "").slice(0, 60);
 function describe(col: string, d: any, ins: boolean): string | null {
   d = d || {}; const v = ins ? "ha aggiunto" : "ha modificato";
-  const T: Record<string, string> = { giornale: "il giornale dei lavori", sopralluogo: "il verbale di sopralluogo", cse: "il verbale CSE", sal: "il rapportino / SAL", consegna: "il verbale di consegna lavori", ordine: "l'ordine di servizio", sospensione: "il verbale di sospensione", ripresa: "il verbale di ripresa", ultimazione: "il verbale di ultimazione" };
+  const T: Record<string, string> = { giornale: "il giornale dei lavori", sopralluogo: "il verbale di sopralluogo", cse: "il verbale CSE", sal: "il rapportino / SAL", consegna: "il verbale di consegna lavori", ordine: "l'ordine di servizio", sospensione: "il verbale di sospensione", ripresa: "il verbale di ripresa", ultimazione: "il verbale di ultimazione", perverb: "il verbale di verifica dei requisiti", perizia: "la bozza di perizia", privacy: "il modulo privacy", sopr40: "il sopralluogo 4.0" };
   switch (col) {
     case "reports": return `${v} ${T[d.mtype] || "il rapportino"} del ${fd(d.date)}`;
-    case "boards": return `${v} il cantiere «${cut(d.name)}»`;
+    case "boards": return `${v} ${d.tipo === "perizia" ? "la pratica perizia" : "il cantiere"} «${cut(d.name)}»`;
     case "cards": return `${v} l'attività «${cut(d.title)}»`;
     case "issues": return `${v} la segnalazione n. ${d.n ?? ""} «${cut(d.title)}»`;
     case "companies": return `${v} l'azienda «${cut(d.name)}»`;
