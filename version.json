@@ -1,1 +1,1 @@
-{"v": "20261122142803", "note": "Numerazione automatica delle commesse: anno a due cifre + progressivo (la prossima è la 2636). Se scrivi a mano un numero già usato, l'app non lo accetta."}
+{"v": "20261122151316", "note": "In ogni commessa c'è il cliente collegato all'anagrafica aziende e la visura camerale: carichi il PDF della visura e i dati (ragione sociale, P.IVA, sede, PEC, REA, ATECO, legale rappresentante) vanno nella scheda dell'azienda dopo averli controllati."}
